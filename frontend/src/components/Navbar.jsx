@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './UI/Button';
-import { Code2, LogOut, User as UserIcon, LayoutDashboard, Menu, X, ShieldCheck, Building2 } from 'lucide-react';
+import { Code2, LogOut, User as UserIcon, LayoutDashboard, Menu, X, ShieldCheck, Building2, Users } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, isAuthenticated, logout, isAdmin, isSystemAdmin, isHRAdmin, isPayrollOfficer, isEmployee } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const canAccessEmployees = isAdmin || isPayrollOfficer;
 
   const handleLogout = () => {
     logout();
@@ -51,6 +53,16 @@ export const Navbar = () => {
                   <LayoutDashboard className="w-4 h-4 text-indigo-400" />
                   <span>Dashboard</span>
                 </Link>
+
+                {canAccessEmployees && (
+                  <Link
+                    to="/employees"
+                    className="flex items-center space-x-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                  >
+                    <Users className="w-4 h-4 text-indigo-400" />
+                    <span>Employees</span>
+                  </Link>
+                )}
 
                 {isAdmin && (
                   <Link
@@ -135,6 +147,15 @@ export const Navbar = () => {
               >
                 Dashboard
               </Link>
+              {canAccessEmployees && (
+                <Link
+                  to="/employees"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-sm font-medium text-slate-300 hover:text-white py-2"
+                >
+                  Employees
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   to="/departments"

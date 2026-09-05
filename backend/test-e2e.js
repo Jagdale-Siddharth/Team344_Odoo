@@ -548,6 +548,393 @@ async function runTests() {
     failed++;
   }
 
+  // F3 TEST SUITE: EMPLOYEE MANAGEMENT
+  const uniqueEmpCode = `EMP_${Date.now()}`;
+  const uniqueWorkEmail = `test.emp.${Date.now()}@peoplepay360.demo`;
+  let createdEmpId = null;
+
+  // 26. GET /api/employees authenticated as HR_ADMIN (expecting 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/employees`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.employees)) {
+      console.log('✅ PASS: GET /api/employees as HR_ADMIN (Listed employees)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/employees as HR_ADMIN', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/employees as HR_ADMIN -', e.message);
+    failed++;
+  }
+
+  // 27. GET /api/employees authenticated as SYSTEM_ADMIN (expecting 200 OK)
+  try {
+    const adminToken = signToken({ id: '1', email: 'admin@peoplepay360.demo', role: 'SYSTEM_ADMIN' });
+    const res = await fetch(`${BASE_URL}/employees`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.employees)) {
+      console.log('✅ PASS: GET /api/employees as SYSTEM_ADMIN (Listed employees)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/employees as SYSTEM_ADMIN', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/employees as SYSTEM_ADMIN -', e.message);
+    failed++;
+  }
+
+  // 28. GET /api/employees unauthenticated (expecting 401 Unauthorized)
+  try {
+    const res = await fetch(`${BASE_URL}/employees`);
+    if (res.status === 401) {
+      console.log('✅ PASS: GET /api/employees unauthenticated rejected (401 Unauthorized)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/employees unauthenticated status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/employees unauthenticated error -', e.message);
+    failed++;
+  }
+
+  // 29. GET /api/employees as EMPLOYEE role (expecting 403 Forbidden)
+  try {
+    const res = await fetch(`${BASE_URL}/employees`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 403) {
+      console.log('✅ PASS: GET /api/employees by EMPLOYEE role blocked (403 Forbidden)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/employees by EMPLOYEE role unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/employees by EMPLOYEE role error -', e.message);
+    failed++;
+  }
+
+  // 30. POST /api/employees as HR_ADMIN (expecting 201 Created)
+  try {
+    const res = await fetch(`${BASE_URL}/employees`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        employee_code: uniqueEmpCode,
+        first_name: 'TestFirst',
+        last_name: 'TestLast',
+        work_email: uniqueWorkEmail,
+        department_id: createdDeptId || '1',
+        job_position_id: createdJobId || '1',
+        employment_type: 'FULL_TIME',
+        joining_date: '2026-01-15',
+        status: 'ACTIVE',
+      }),
+    });
+    const data = await res.json();
+    if (res.status === 201 && data.success && data.employee?.id) {
+      createdEmpId = data.employee.id;
+      console.log('✅ PASS: POST /api/employees (Created valid employee profile)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/employees as HR_ADMIN', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/employees as HR_ADMIN -', e.message);
+    failed++;
+  }
+
+  // 31. POST /api/employees with nonexistent department_id (expecting 404 Not Found)
+  try {
+    const res = await fetch(`${BASE_URL}/employees`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        first_name: 'InvalidDept',
+        last_name: 'User',
+        work_email: `invalid.dept.${Date.now()}@test.com`,
+        department_id: '999999',
+        job_position_id: '1',
+      }),
+    });
+    if (res.status === 404) {
+      console.log('✅ PASS: POST /api/employees with invalid department rejected (404 Not Found)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/employees invalid department status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/employees invalid department error -', e.message);
+    failed++;
+  }
+
+  // 32. POST /api/employees with nonexistent job_position_id (expecting 404 Not Found)
+  try {
+    const res = await fetch(`${BASE_URL}/employees`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        first_name: 'InvalidJob',
+        last_name: 'User',
+        work_email: `invalid.job.${Date.now()}@test.com`,
+        department_id: '1',
+        job_position_id: '999999',
+      }),
+    });
+    if (res.status === 404) {
+      console.log('✅ PASS: POST /api/employees with invalid job position rejected (404 Not Found)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/employees invalid job position status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/employees invalid job position error -', e.message);
+    failed++;
+  }
+
+  // 33. POST /api/employees with duplicate work_email (expecting 409 Conflict)
+  try {
+    const res = await fetch(`${BASE_URL}/employees`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        employee_code: `CODE_${Date.now()}`,
+        first_name: 'DupEmail',
+        last_name: 'User',
+        work_email: uniqueWorkEmail,
+        department_id: '1',
+        job_position_id: '1',
+      }),
+    });
+    if (res.status === 409) {
+      console.log('✅ PASS: POST /api/employees duplicate work_email rejected (409 Conflict)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/employees duplicate work_email status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/employees duplicate work_email error -', e.message);
+    failed++;
+  }
+
+  // 34. POST /api/employees with duplicate employee_code (expecting 409 Conflict)
+  try {
+    const res = await fetch(`${BASE_URL}/employees`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        employee_code: uniqueEmpCode,
+        first_name: 'DupCode',
+        last_name: 'User',
+        work_email: `unique.${Date.now()}@test.com`,
+        department_id: '1',
+        job_position_id: '1',
+      }),
+    });
+    if (res.status === 409) {
+      console.log('✅ PASS: POST /api/employees duplicate employee_code rejected (409 Conflict)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/employees duplicate employee_code status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/employees duplicate employee_code error -', e.message);
+    failed++;
+  }
+
+  // 35. POST /api/employees validation failure (expecting 400 Bad Request)
+  try {
+    const res = await fetch(`${BASE_URL}/employees`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        first_name: '',
+        last_name: 'User',
+        work_email: 'not-an-email',
+      }),
+    });
+    const data = await res.json();
+    if (res.status === 400 && data.errors?.length > 0) {
+      console.log('✅ PASS: POST /api/employees invalid data returned 400 Bad Request');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/employees validation failure status -', res.status, data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/employees validation failure error -', e.message);
+    failed++;
+  }
+
+  // 36. GET /api/employees/:id with valid ID (expecting 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/employees/${createdEmpId}`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && data.employee?.id === createdEmpId) {
+      console.log('✅ PASS: GET /api/employees/:id (Retrieved employee profile)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/employees/:id', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/employees/:id -', e.message);
+    failed++;
+  }
+
+  // 37. GET /api/employees/:id with invalid ID format (expecting 400 Bad Request)
+  try {
+    const res = await fetch(`${BASE_URL}/employees/abc-invalid`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    if (res.status === 400) {
+      console.log('✅ PASS: GET /api/employees/:id invalid format rejected (400 Bad Request)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/employees/:id invalid format status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/employees/:id invalid format error -', e.message);
+    failed++;
+  }
+
+  // 38. GET /api/employees/:id with nonexistent ID (expecting 404 Not Found)
+  try {
+    const res = await fetch(`${BASE_URL}/employees/999999`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    if (res.status === 404) {
+      console.log('✅ PASS: GET /api/employees/:id nonexistent ID rejected (404 Not Found)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/employees/:id nonexistent ID status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/employees/:id nonexistent ID error -', e.message);
+    failed++;
+  }
+
+  // 39. PUT /api/employees/:id as HR_ADMIN (expecting 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/employees/${createdEmpId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        first_name: 'UpdatedFirst',
+        status: 'INACTIVE',
+      }),
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && data.employee?.first_name === 'UpdatedFirst' && data.employee?.status === 'INACTIVE') {
+      console.log('✅ PASS: PUT /api/employees/:id (Updated employee profile)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: PUT /api/employees/:id', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: PUT /api/employees/:id -', e.message);
+    failed++;
+  }
+
+  // 40. PUT /api/employees/:id as EMPLOYEE role (expecting 403 Forbidden)
+  try {
+    const res = await fetch(`${BASE_URL}/employees/${createdEmpId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        first_name: 'ForbiddenUpdate',
+      }),
+    });
+    if (res.status === 403) {
+      console.log('✅ PASS: PUT /api/employees/:id by EMPLOYEE role blocked (403 Forbidden)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: PUT /api/employees/:id by EMPLOYEE role status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: PUT /api/employees/:id by EMPLOYEE role error -', e.message);
+    failed++;
+  }
+
+  // 41. GET /api/employees?search=UpdatedFirst (expecting 200 OK filtered)
+  try {
+    const res = await fetch(`${BASE_URL}/employees?search=UpdatedFirst`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.employees) && data.employees.length > 0) {
+      console.log('✅ PASS: GET /api/employees?search=UpdatedFirst (Filtered list by search string)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/employees?search=UpdatedFirst', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/employees?search=UpdatedFirst -', e.message);
+    failed++;
+  }
+
+  // 42. GET /api/employees?status=INACTIVE (expecting 200 OK filtered)
+  try {
+    const res = await fetch(`${BASE_URL}/employees?status=INACTIVE`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.employees)) {
+      console.log('✅ PASS: GET /api/employees?status=INACTIVE (Filtered list by status)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/employees?status=INACTIVE', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/employees?status=INACTIVE -', e.message);
+    failed++;
+  }
+
   console.log(`\n📊 Final Test Results: ${passed} Passed, ${failed} Failed`);
   if (failed > 0) {
     process.exit(1);
