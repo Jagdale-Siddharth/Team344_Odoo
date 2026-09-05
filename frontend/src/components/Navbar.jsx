@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './UI/Button';
-import { Code2, LogOut, User as UserIcon, LayoutDashboard, Menu, X, ShieldCheck, Building2, Users } from 'lucide-react';
+import { Code2, LogOut, User as UserIcon, LayoutDashboard, Menu, X, ShieldCheck, Building2, Users, Clock } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, isAuthenticated, logout, isAdmin, isSystemAdmin, isHRAdmin, isPayrollOfficer, isEmployee } = useAuth();
@@ -10,6 +10,7 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const canAccessEmployees = isAdmin || isPayrollOfficer;
+  const canAccessSchedules = isAdmin || isPayrollOfficer;
 
   const handleLogout = () => {
     logout();
@@ -61,6 +62,16 @@ export const Navbar = () => {
                   >
                     <Users className="w-4 h-4 text-indigo-400" />
                     <span>Employees</span>
+                  </Link>
+                )}
+
+                {canAccessSchedules && (
+                  <Link
+                    to="/working-schedules"
+                    className="flex items-center space-x-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                  >
+                    <Clock className="w-4 h-4 text-indigo-400" />
+                    <span>Schedules</span>
                   </Link>
                 )}
 
@@ -154,6 +165,15 @@ export const Navbar = () => {
                   className="block text-sm font-medium text-slate-300 hover:text-white py-2"
                 >
                   Employees
+                </Link>
+              )}
+              {canAccessSchedules && (
+                <Link
+                  to="/working-schedules"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-sm font-medium text-slate-300 hover:text-white py-2"
+                >
+                  Working Schedules
                 </Link>
               )}
               {isAdmin && (

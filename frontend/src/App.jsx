@@ -8,6 +8,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DepartmentsPage } from './pages/DepartmentsPage';
 import { EmployeesPage } from './pages/EmployeesPage';
+import { WorkingSchedulesPage } from './pages/WorkingSchedulesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 export default function App() {
@@ -42,6 +43,14 @@ export default function App() {
                 element={
                   <ProtectedRoute roles={['SYSTEM_ADMIN', 'HR_ADMIN', 'PAYROLL_OFFICER']}>
                     <EmployeesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/working-schedules"
+                element={
+                  <ProtectedRoute roles={['SYSTEM_ADMIN', 'HR_ADMIN', 'PAYROLL_OFFICER']}>
+                    <WorkingSchedulesPage />
                   </ProtectedRoute>
                 }
               />

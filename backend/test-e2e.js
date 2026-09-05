@@ -935,6 +935,369 @@ async function runTests() {
     failed++;
   }
 
+  // ================================================================
+  // F4 — WORKING SCHEDULES TESTS
+  // ================================================================
+
+  let createdSchedId = null;
+  const uniqueSchedName = `Test Shift ${Date.now()}`;
+  const adminToken = signToken({ id: '1', email: 'admin@peoplepay360.demo', role: 'SYSTEM_ADMIN' });
+  const payrollToken = signToken({ id: '2', email: 'payroll@peoplepay360.demo', role: 'PAYROLL_OFFICER' });
+
+  // 43. GET /api/working-schedules unauthenticated (expecting 401 Unauthorized)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`);
+    if (res.status === 401) {
+      console.log('✅ PASS: GET /api/working-schedules unauthenticated rejected (401 Unauthorized)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/working-schedules unauthenticated status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/working-schedules unauthenticated -', e.message);
+    failed++;
+  }
+
+  // 44. GET /api/working-schedules as EMPLOYEE role (expecting 403 Forbidden)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 403) {
+      console.log('✅ PASS: GET /api/working-schedules by EMPLOYEE role blocked (403 Forbidden)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/working-schedules by EMPLOYEE status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/working-schedules by EMPLOYEE -', e.message);
+    failed++;
+  }
+
+  // 45. GET /api/working-schedules as HR_ADMIN (expecting 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.schedules)) {
+      console.log('✅ PASS: GET /api/working-schedules as HR_ADMIN (Listed schedules)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/working-schedules as HR_ADMIN', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/working-schedules as HR_ADMIN -', e.message);
+    failed++;
+  }
+
+  // 46. GET /api/working-schedules as PAYROLL_OFFICER (expecting 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`, {
+      headers: { Authorization: `Bearer ${payrollToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.schedules)) {
+      console.log('✅ PASS: GET /api/working-schedules as PAYROLL_OFFICER (Listed schedules)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/working-schedules as PAYROLL_OFFICER', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/working-schedules as PAYROLL_OFFICER -', e.message);
+    failed++;
+  }
+
+  // 47. GET /api/working-schedules as SYSTEM_ADMIN (expecting 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.schedules)) {
+      console.log('✅ PASS: GET /api/working-schedules as SYSTEM_ADMIN (Listed schedules)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/working-schedules as SYSTEM_ADMIN', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/working-schedules as SYSTEM_ADMIN -', e.message);
+    failed++;
+  }
+
+  // 48. POST /api/working-schedules as HR_ADMIN with valid lines (expecting 201 Created & PostgreSQL trigger calculated weekly_hours)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        schedule_name: uniqueSchedName,
+        schedule_type: 'WEEKLY',
+        is_active: true,
+        lines: [
+          { day_of_week: 1, is_working: true, start_time: '09:00', end_time: '17:00', break_minutes: 60 },
+          { day_of_week: 2, is_working: true, start_time: '09:00', end_time: '17:00', break_minutes: 60 },
+          { day_of_week: 3, is_working: true, start_time: '09:00', end_time: '17:00', break_minutes: 60 },
+          { day_of_week: 4, is_working: true, start_time: '09:00', end_time: '17:00', break_minutes: 60 },
+          { day_of_week: 5, is_working: true, start_time: '09:00', end_time: '17:00', break_minutes: 60 },
+        ],
+      }),
+    });
+    const data = await res.json();
+    // 5 days * (8h - 1h) = 35 weekly_hours calculated by PostgreSQL trigger!
+    if (res.status === 201 && data.success && data.schedule?.weekly_hours === 35) {
+      createdSchedId = data.schedule.id;
+      console.log('✅ PASS: POST /api/working-schedules (Created schedule & verified PostgreSQL weekly_hours=35)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/working-schedules as HR_ADMIN', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/working-schedules as HR_ADMIN -', e.message);
+    failed++;
+  }
+
+  // 49. POST /api/working-schedules as SYSTEM_ADMIN (expecting 201 Created)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        schedule_name: `Admin Shift ${Date.now()}`,
+        schedule_type: 'WEEKLY',
+        is_active: true,
+        lines: [
+          { day_of_week: 1, is_working: true, start_time: '08:00', end_time: '16:00', break_minutes: 30 },
+        ],
+      }),
+    });
+    const data = await res.json();
+    if (res.status === 201 && data.success) {
+      console.log('✅ PASS: POST /api/working-schedules as SYSTEM_ADMIN (Created schedule)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/working-schedules as SYSTEM_ADMIN', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/working-schedules as SYSTEM_ADMIN -', e.message);
+    failed++;
+  }
+
+  // 50. POST /api/working-schedules with invalid data (empty schedule_name) (expecting 400 Bad Request)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        schedule_name: '',
+        lines: [{ day_of_week: 1, start_time: '09:00', end_time: '17:00' }],
+      }),
+    });
+    if (res.status === 400) {
+      console.log('✅ PASS: POST /api/working-schedules with empty name rejected (400 Bad Request)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/working-schedules invalid name status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/working-schedules invalid name -', e.message);
+    failed++;
+  }
+
+  // 51. POST /api/working-schedules with invalid time config (end_time before start_time) (expecting 400 Bad Request)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        schedule_name: `Bad Shift ${Date.now()}`,
+        lines: [{ day_of_week: 1, is_working: true, start_time: '18:00', end_time: '09:00', break_minutes: 0 }],
+      }),
+    });
+    if (res.status === 400) {
+      console.log('✅ PASS: POST /api/working-schedules invalid timing rejected (400 Bad Request)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/working-schedules invalid timing status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/working-schedules invalid timing -', e.message);
+    failed++;
+  }
+
+  // 52. POST /api/working-schedules by EMPLOYEE role (expecting 403 Forbidden)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        schedule_name: `Emp Shift ${Date.now()}`,
+        lines: [{ day_of_week: 1, is_working: true, start_time: '09:00', end_time: '17:00' }],
+      }),
+    });
+    if (res.status === 403) {
+      console.log('✅ PASS: POST /api/working-schedules by EMPLOYEE role blocked (403 Forbidden)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/working-schedules by EMPLOYEE status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/working-schedules by EMPLOYEE -', e.message);
+    failed++;
+  }
+
+  // 53. GET /api/working-schedules/:id with valid ID (expecting 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules/${createdSchedId}`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && data.schedule?.id === createdSchedId) {
+      console.log('✅ PASS: GET /api/working-schedules/:id (Retrieved schedule details)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/working-schedules/:id', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/working-schedules/:id -', e.message);
+    failed++;
+  }
+
+  // 54. GET /api/working-schedules/:id with invalid ID format (expecting 400 Bad Request)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules/invalid-id-format`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    if (res.status === 400) {
+      console.log('✅ PASS: GET /api/working-schedules/:id invalid format rejected (400 Bad Request)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/working-schedules/:id invalid format status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/working-schedules/:id invalid format -', e.message);
+    failed++;
+  }
+
+  // 55. GET /api/working-schedules/:id with nonexistent ID (expecting 404 Not Found)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules/999999`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    if (res.status === 404) {
+      console.log('✅ PASS: GET /api/working-schedules/:id nonexistent ID rejected (404 Not Found)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/working-schedules/:id nonexistent ID status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/working-schedules/:id nonexistent ID -', e.message);
+    failed++;
+  }
+
+  // 56. PUT /api/working-schedules/:id as HR_ADMIN (expecting 200 OK & updated PostgreSQL weekly_hours)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules/${createdSchedId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        schedule_name: `${uniqueSchedName} Updated`,
+        lines: [
+          { day_of_week: 1, is_working: true, start_time: '09:00', end_time: '18:00', break_minutes: 60 },
+          { day_of_week: 2, is_working: true, start_time: '09:00', end_time: '18:00', break_minutes: 60 },
+          { day_of_week: 3, is_working: true, start_time: '09:00', end_time: '18:00', break_minutes: 60 },
+          { day_of_week: 4, is_working: true, start_time: '09:00', end_time: '18:00', break_minutes: 60 },
+          { day_of_week: 5, is_working: true, start_time: '09:00', end_time: '18:00', break_minutes: 60 },
+        ],
+      }),
+    });
+    const data = await res.json();
+    // 5 days * (9h - 1h) = 40 weekly_hours calculated by PostgreSQL trigger!
+    if (res.status === 200 && data.success && data.schedule?.weekly_hours === 40) {
+      console.log('✅ PASS: PUT /api/working-schedules/:id (Updated schedule & verified updated PostgreSQL weekly_hours=40)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: PUT /api/working-schedules/:id as HR_ADMIN', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: PUT /api/working-schedules/:id as HR_ADMIN -', e.message);
+    failed++;
+  }
+
+  // 57. PUT /api/working-schedules/:id by EMPLOYEE role (expecting 403 Forbidden)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules/${createdSchedId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        schedule_name: 'Forbidden Edit',
+      }),
+    });
+    if (res.status === 403) {
+      console.log('✅ PASS: PUT /api/working-schedules/:id by EMPLOYEE role blocked (403 Forbidden)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: PUT /api/working-schedules/:id by EMPLOYEE status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: PUT /api/working-schedules/:id by EMPLOYEE -', e.message);
+    failed++;
+  }
+
+  // 58. GET /api/working-schedules?is_active=true (expecting 200 OK filtered list)
+  try {
+    const res = await fetch(`${BASE_URL}/working-schedules?is_active=true`, {
+      headers: { Authorization: `Bearer ${hrToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.schedules)) {
+      console.log('✅ PASS: GET /api/working-schedules?is_active=true (Filtered list by active status)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/working-schedules?is_active=true', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/working-schedules?is_active=true -', e.message);
+    failed++;
+  }
+
   console.log(`\n📊 Final Test Results: ${passed} Passed, ${failed} Failed`);
   if (failed > 0) {
     process.exit(1);
