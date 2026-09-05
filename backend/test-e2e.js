@@ -214,6 +214,340 @@ async function runTests() {
     failed++;
   }
 
+  // F2 TEST SUITE: DEPARTMENTS & JOB POSITIONS
+  const hrToken = signToken({ id: '1', email: 'hr.admin@team344.com', role: 'HR_ADMIN' });
+  const uniqueDeptName = `Dept_${Date.now()}`;
+  let createdDeptId = null;
+  let createdJobId = null;
+
+  // 12. GET /api/departments with valid authenticated user (expecting 200)
+  try {
+    const res = await fetch(`${BASE_URL}/departments`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.departments)) {
+      console.log('✅ PASS: GET /api/departments (Listed departments for authenticated user)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/departments', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/departments -', e.message);
+    failed++;
+  }
+
+  // 13. GET /api/job-positions with valid authenticated user (expecting 200)
+  try {
+    const res = await fetch(`${BASE_URL}/job-positions`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.jobPositions)) {
+      console.log('✅ PASS: GET /api/job-positions (Listed job positions for authenticated user)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/job-positions', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/job-positions -', e.message);
+    failed++;
+  }
+
+  // 14. GET /api/job-positions filtered by department_id (expecting 200)
+  try {
+    const res = await fetch(`${BASE_URL}/job-positions?department_id=1`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && Array.isArray(data.jobPositions)) {
+      console.log('✅ PASS: GET /api/job-positions?department_id=1 (Filtered by department)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/job-positions?department_id=1', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/job-positions?department_id=1 -', e.message);
+    failed++;
+  }
+
+  // 15. POST /api/departments as HR_ADMIN (expecting 201 Created)
+  try {
+    const res = await fetch(`${BASE_URL}/departments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        department_name: uniqueDeptName,
+        description: 'Test Department Description',
+        is_active: true,
+      }),
+    });
+    const data = await res.json();
+    if (res.status === 201 && data.success && data.department?.id) {
+      createdDeptId = data.department.id;
+      console.log('✅ PASS: POST /api/departments (Created department as HR_ADMIN)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/departments as HR_ADMIN', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/departments as HR_ADMIN -', e.message);
+    failed++;
+  }
+
+  // 16. POST /api/departments duplicate name (expecting 409 Conflict)
+  try {
+    const res = await fetch(`${BASE_URL}/departments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        department_name: uniqueDeptName,
+        description: 'Duplicate test',
+      }),
+    });
+    if (res.status === 409) {
+      console.log('✅ PASS: POST /api/departments duplicate name rejected (409 Conflict)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/departments duplicate name unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/departments duplicate name error -', e.message);
+    failed++;
+  }
+
+  // 17. PUT /api/departments/:id as HR_ADMIN (expecting 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/departments/${createdDeptId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        description: 'Updated Department Description',
+      }),
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && data.department?.description === 'Updated Department Description') {
+      console.log('✅ PASS: PUT /api/departments/:id (Updated department description)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: PUT /api/departments/:id', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: PUT /api/departments/:id -', e.message);
+    failed++;
+  }
+
+  // 18. POST /api/job-positions as HR_ADMIN (expecting 201 Created)
+  const uniqueJobTitle = `Title_${Date.now()}`;
+  try {
+    const res = await fetch(`${BASE_URL}/job-positions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        department_id: createdDeptId,
+        title: uniqueJobTitle,
+        description: 'Test position description',
+        is_active: true,
+      }),
+    });
+    const data = await res.json();
+    if (res.status === 201 && data.success && data.jobPosition?.id) {
+      createdJobId = data.jobPosition.id;
+      console.log('✅ PASS: POST /api/job-positions (Created position linked to department)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/job-positions', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/job-positions -', e.message);
+    failed++;
+  }
+
+  // 19. POST /api/job-positions with nonexistent department (expecting 404 Not Found)
+  try {
+    const res = await fetch(`${BASE_URL}/job-positions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        department_id: '999999',
+        title: 'Nonexistent Dept Title',
+      }),
+    });
+    if (res.status === 404) {
+      console.log('✅ PASS: POST /api/job-positions with invalid department correctly rejected (404 Not Found)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/job-positions with invalid department unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/job-positions with invalid department error -', e.message);
+    failed++;
+  }
+
+  // 20. POST /api/job-positions duplicate title in same department (expecting 409 Conflict)
+  try {
+    const res = await fetch(`${BASE_URL}/job-positions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        department_id: createdDeptId,
+        title: uniqueJobTitle,
+      }),
+    });
+    if (res.status === 409) {
+      console.log('✅ PASS: POST /api/job-positions duplicate title in same department rejected (409 Conflict)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/job-positions duplicate title unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/job-positions duplicate title error -', e.message);
+    failed++;
+  }
+
+  // 21. PUT /api/job-positions/:id as HR_ADMIN (expecting 200 OK)
+  try {
+    const res = await fetch(`${BASE_URL}/job-positions/${createdJobId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({
+        description: 'Updated position description',
+      }),
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success && data.jobPosition?.description === 'Updated position description') {
+      console.log('✅ PASS: PUT /api/job-positions/:id (Updated job position description)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: PUT /api/job-positions/:id', data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: PUT /api/job-positions/:id -', e.message);
+    failed++;
+  }
+
+  // 22. POST /api/departments as EMPLOYEE (expecting 403 Forbidden)
+  try {
+    const res = await fetch(`${BASE_URL}/departments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        department_name: 'Employee Forbidden Dept',
+      }),
+    });
+    if (res.status === 403) {
+      console.log('✅ PASS: POST /api/departments by EMPLOYEE role correctly blocked (403 Forbidden)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/departments by EMPLOYEE unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/departments by EMPLOYEE error -', e.message);
+    failed++;
+  }
+
+  // 23. POST /api/job-positions as EMPLOYEE (expecting 403 Forbidden)
+  try {
+    const res = await fetch(`${BASE_URL}/job-positions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        department_id: '1',
+        title: 'Employee Forbidden Position',
+      }),
+    });
+    if (res.status === 403) {
+      console.log('✅ PASS: POST /api/job-positions by EMPLOYEE role correctly blocked (403 Forbidden)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/job-positions by EMPLOYEE unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/job-positions by EMPLOYEE error -', e.message);
+    failed++;
+  }
+
+  // 24. Unauthenticated POST /api/departments without token (expecting 401 Unauthorized)
+  try {
+    const res = await fetch(`${BASE_URL}/departments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ department_name: 'No Token Dept' }),
+    });
+    if (res.status === 401) {
+      console.log('✅ PASS: POST /api/departments without token rejected (401 Unauthorized)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/departments without token unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/departments without token error -', e.message);
+    failed++;
+  }
+
+  // 25. Invalid request data with empty department_name (expecting 400 Bad Request)
+  try {
+    const res = await fetch(`${BASE_URL}/departments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${hrToken}`,
+      },
+      body: JSON.stringify({ department_name: '' }),
+    });
+    const data = await res.json();
+    if (res.status === 400 && data.errors?.length > 0) {
+      console.log('✅ PASS: POST /api/departments with empty name returned 400 Bad Request');
+      passed++;
+    } else {
+      console.error('❌ FAIL: POST /api/departments empty name unexpected status -', res.status, data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: POST /api/departments empty name error -', e.message);
+    failed++;
+  }
+
   console.log(`\n📊 Final Test Results: ${passed} Passed, ${failed} Failed`);
   if (failed > 0) {
     process.exit(1);

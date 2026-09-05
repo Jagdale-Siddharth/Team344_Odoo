@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './UI/Button';
-import { Code2, LogOut, User as UserIcon, LayoutDashboard, Menu, X, ShieldCheck } from 'lucide-react';
+import { Code2, LogOut, User as UserIcon, LayoutDashboard, Menu, X, ShieldCheck, Building2 } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, isAuthenticated, logout, isAdmin, isSystemAdmin, isHRAdmin, isPayrollOfficer, isEmployee } = useAuth();
@@ -51,6 +51,16 @@ export const Navbar = () => {
                   <LayoutDashboard className="w-4 h-4 text-indigo-400" />
                   <span>Dashboard</span>
                 </Link>
+
+                {isAdmin && (
+                  <Link
+                    to="/departments"
+                    className="flex items-center space-x-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                  >
+                    <Building2 className="w-4 h-4 text-indigo-400" />
+                    <span>Departments &amp; Positions</span>
+                  </Link>
+                )}
 
                 <div className="h-4 w-[1px] bg-slate-800"></div>
 
@@ -125,6 +135,15 @@ export const Navbar = () => {
               >
                 Dashboard
               </Link>
+              {isAdmin && (
+                <Link
+                  to="/departments"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-sm font-medium text-slate-300 hover:text-white py-2"
+                >
+                  Departments &amp; Positions
+                </Link>
+              )}
               <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
                 <span className="text-xs text-slate-400">{user?.email} ({user?.role})</span>
                 <Button variant="danger" size="sm" onClick={handleLogout}>

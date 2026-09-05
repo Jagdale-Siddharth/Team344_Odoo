@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { DepartmentsPage } from './pages/DepartmentsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 export default function App() {
@@ -24,6 +25,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/departments"
+                element={
+                  <ProtectedRoute roles={['SYSTEM_ADMIN', 'HR_ADMIN']}>
+                    <DepartmentsPage />
                   </ProtectedRoute>
                 }
               />
