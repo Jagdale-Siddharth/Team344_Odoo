@@ -18,7 +18,7 @@ export const register = async (req, res, next) => {
   try {
     const { email, password, name } = req.body;
 
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email },
     });
 
@@ -31,30 +31,38 @@ export const register = async (req, res, next) => {
 
     const hashedPassword = await hashPassword(password);
 
-    const user = await prisma.user.create({
+    // Default to EMPLOYEE role
+    const employeeRole = await prisma.roles.findFirst({
+      where: { role_name: 'EMPLOYEE' },
+    });
+
+    const user = await prisma.users.create({
       data: {
         email,
-        password: hashedPassword,
-        name: name || null,
-        role: 'USER',
+        password_hash: hashedPassword,
+        role_id: employeeRole ? employeeRole.role_id : 1,
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        roles: true,
       },
     });
 
-    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    const roleName = user.roles ? user.roles.role_name : 'EMPLOYEE';
+    const token = signToken({ id: user.user_id.toString(), email: user.email, role: roleName });
+
+    const safeUser = {
+      id: user.user_id.toString(),
+      email: user.email,
+      role: roleName,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+    };
 
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       token,
-      user,
+      user: safeUser,
     });
   } catch (error) {
     next(error);
@@ -65,8 +73,12 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
+      include: {
+        roles: true,
+        employees: true,
+      },
     });
 
     if (!user) {
@@ -76,7 +88,7 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const isMatch = await comparePassword(password, user.password);
+    const isMatch = await comparePassword(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -84,15 +96,21 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    const roleName = user.roles ? user.roles.role_name : 'EMPLOYEE';
+    const token = signToken({ id: user.user_id.toString(), email: user.email, role: roleName });
 
     const safeUser = {
-      id: user.id,
+      id: user.user_id.toString(),
       email: user.email,
-      name: user.name,
-      role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      role: roleName,
+      employee: user.employees ? {
+        id: user.employees.employee_id.toString(),
+        code: user.employees.employee_code,
+        firstName: user.employees.first_name,
+        lastName: user.employees.last_name,
+      } : null,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
     };
 
     res.status(200).json({

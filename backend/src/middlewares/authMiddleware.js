@@ -14,15 +14,11 @@ export const authenticate = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
+    const user = await prisma.users.findUnique({
+      where: { user_id: BigInt(decoded.id) },
+      include: {
+        roles: true,
+        employees: true,
       },
     });
 
@@ -33,7 +29,20 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    req.user = user;
+    req.user = {
+      id: user.user_id.toString(),
+      email: user.email,
+      role: user.roles ? user.roles.role_name : 'EMPLOYEE',
+      employee: user.employees ? {
+        id: user.employees.employee_id.toString(),
+        code: user.employees.employee_code,
+        firstName: user.employees.first_name,
+        lastName: user.employees.last_name,
+      } : null,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+    };
+
     next();
   } catch (error) {
     next(error);
