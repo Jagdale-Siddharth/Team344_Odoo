@@ -94,7 +94,12 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         isAuthenticated: !!user && !!token,
-        isAdmin: user?.role === 'ADMIN',
+        isSystemAdmin: user?.role === 'SYSTEM_ADMIN',
+        isHRAdmin: user?.role === 'HR_ADMIN',
+        isPayrollOfficer: user?.role === 'PAYROLL_OFFICER',
+        isEmployee: user?.role === 'EMPLOYEE',
+        isAdmin: user?.role === 'SYSTEM_ADMIN' || user?.role === 'HR_ADMIN',
+        hasRole: (roles = []) => Array.isArray(roles) && roles.includes(user?.role),
       }}
     >
       {children}

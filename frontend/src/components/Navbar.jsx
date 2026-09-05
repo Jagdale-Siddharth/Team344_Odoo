@@ -5,7 +5,7 @@ import { Button } from './UI/Button';
 import { Code2, LogOut, User as UserIcon, LayoutDashboard, Menu, X, ShieldCheck } from 'lucide-react';
 
 export const Navbar = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isAdmin, isSystemAdmin, isHRAdmin, isPayrollOfficer, isEmployee } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -63,7 +63,7 @@ export const Navbar = () => {
                     <span className="font-semibold text-slate-200">{user?.name || user?.email}</span>
                     <span className="text-[10px] text-slate-400 flex items-center space-x-1">
                       <span>{user?.role}</span>
-                      {user?.role === 'ADMIN' && <ShieldCheck className="w-3 h-3 text-amber-400 inline" />}
+                      {isAdmin && <ShieldCheck className="w-3 h-3 text-amber-400 inline" />}
                     </span>
                   </div>
                 </div>

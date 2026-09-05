@@ -14,6 +14,13 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password required'),
 });
 
+const normalizeRole = (roleName) => {
+  if (roleName === 'ADMIN') return 'SYSTEM_ADMIN';
+  if (roleName === 'HR_MANAGER') return 'HR_ADMIN';
+  if (roleName === 'PAYROLL_MANAGER' || roleName === 'PAYROLL_USER') return 'PAYROLL_OFFICER';
+  return roleName || 'EMPLOYEE';
+};
+
 export const register = async (req, res, next) => {
   try {
     const { email, password, name } = req.body;
@@ -47,13 +54,32 @@ export const register = async (req, res, next) => {
       },
     });
 
-    const roleName = user.roles ? user.roles.role_name : 'EMPLOYEE';
+    // Check if an employee record exists with matching work_email and link if unlinked
+    let linkedEmployee = await prisma.employees.findFirst({
+      where: { work_email: email },
+    });
+
+    if (linkedEmployee && !linkedEmployee.user_id) {
+      linkedEmployee = await prisma.employees.update({
+        where: { employee_id: linkedEmployee.employee_id },
+        data: { user_id: user.user_id },
+      });
+    }
+
+    const roleName = normalizeRole(user.roles ? user.roles.role_name : 'EMPLOYEE');
     const token = signToken({ id: user.user_id.toString(), email: user.email, role: roleName });
 
     const safeUser = {
       id: user.user_id.toString(),
       email: user.email,
       role: roleName,
+      name: name || (linkedEmployee ? `${linkedEmployee.first_name} ${linkedEmployee.last_name}` : null),
+      employee: linkedEmployee ? {
+        id: linkedEmployee.employee_id.toString(),
+        code: linkedEmployee.employee_code,
+        firstName: linkedEmployee.first_name,
+        lastName: linkedEmployee.last_name,
+      } : null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     };
@@ -96,18 +122,33 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const roleName = user.roles ? user.roles.role_name : 'EMPLOYEE';
+    // Auto-link matching employee if unlinked
+    let employeeData = user.employees;
+    if (!employeeData) {
+      const existingEmployee = await prisma.employees.findFirst({
+        where: { work_email: email },
+      });
+      if (existingEmployee && !existingEmployee.user_id) {
+        employeeData = await prisma.employees.update({
+          where: { employee_id: existingEmployee.employee_id },
+          data: { user_id: user.user_id },
+        });
+      }
+    }
+
+    const roleName = normalizeRole(user.roles ? user.roles.role_name : 'EMPLOYEE');
     const token = signToken({ id: user.user_id.toString(), email: user.email, role: roleName });
 
     const safeUser = {
       id: user.user_id.toString(),
       email: user.email,
       role: roleName,
-      employee: user.employees ? {
-        id: user.employees.employee_id.toString(),
-        code: user.employees.employee_code,
-        firstName: user.employees.first_name,
-        lastName: user.employees.last_name,
+      name: employeeData ? `${employeeData.first_name} ${employeeData.last_name}` : null,
+      employee: employeeData ? {
+        id: employeeData.employee_id.toString(),
+        code: employeeData.employee_code,
+        firstName: employeeData.first_name,
+        lastName: employeeData.last_name,
       } : null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,

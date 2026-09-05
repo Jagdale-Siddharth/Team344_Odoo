@@ -1,3 +1,5 @@
+import { signToken } from './src/utils/jwt.js';
+
 const BASE_URL = 'http://localhost:5000/api';
 
 async function runTests() {
@@ -141,6 +143,74 @@ async function runTests() {
     }
   } catch (e) {
     console.error('❌ FAIL: Duplicate registration error -', e.message);
+    failed++;
+  }
+
+  // 8. /me without JWT test (expecting 401)
+  try {
+    const res = await fetch(`${BASE_URL}/auth/me`);
+    if (res.status === 401) {
+      console.log('✅ PASS: GET /api/auth/me without token correctly rejected (401 Unauthorized)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/auth/me without token unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/auth/me without token error -', e.message);
+    failed++;
+  }
+
+  // 9. /me with malformed JWT test (expecting 401)
+  try {
+    const res = await fetch(`${BASE_URL}/auth/me`, {
+      headers: { Authorization: 'Bearer invalid.token.payload' },
+    });
+    if (res.status === 401) {
+      console.log('✅ PASS: GET /api/auth/me with malformed token correctly rejected (401 Unauthorized)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: GET /api/auth/me with malformed token unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: GET /api/auth/me with malformed token error -', e.message);
+    failed++;
+  }
+
+  // 10. RBAC unauthorized test: EMPLOYEE role accessing admin-only endpoint (expecting 403)
+  try {
+    const res = await fetch(`${BASE_URL}/auth/rbac-test`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 403) {
+      console.log('✅ PASS: RBAC endpoint returned 403 Forbidden for unauthorized role (EMPLOYEE)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: RBAC unauthorized test unexpected status -', res.status);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: RBAC unauthorized test error -', e.message);
+    failed++;
+  }
+
+  // 11. RBAC authorized test: SYSTEM_ADMIN role accessing admin endpoint (expecting 200)
+  try {
+    const adminToken = signToken({ id: '1', email: 'admin@peoplepay360.demo', role: 'SYSTEM_ADMIN' });
+    const res = await fetch(`${BASE_URL}/auth/rbac-test`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success) {
+      console.log('✅ PASS: RBAC endpoint granted access (200 OK) for authorized role (SYSTEM_ADMIN)');
+      passed++;
+    } else {
+      console.error('❌ FAIL: RBAC authorized test unexpected status -', res.status, data);
+      failed++;
+    }
+  } catch (e) {
+    console.error('❌ FAIL: RBAC authorized test error -', e.message);
     failed++;
   }
 
