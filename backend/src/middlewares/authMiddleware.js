@@ -29,10 +29,15 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
+    let roleName = decoded.role || (user.roles ? user.roles.role_name : 'EMPLOYEE');
+    if (roleName === 'ADMIN') roleName = 'SYSTEM_ADMIN';
+    else if (roleName === 'HR_MANAGER') roleName = 'HR_ADMIN';
+    else if (roleName === 'PAYROLL_MANAGER' || roleName === 'PAYROLL_USER') roleName = 'PAYROLL_OFFICER';
+
     req.user = {
       id: user.user_id.toString(),
       email: user.email,
-      role: user.roles ? user.roles.role_name : 'EMPLOYEE',
+      role: roleName,
       employee: user.employees ? {
         id: user.employees.employee_id.toString(),
         code: user.employees.employee_code,
