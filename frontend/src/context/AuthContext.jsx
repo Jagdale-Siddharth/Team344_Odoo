@@ -1,12 +1,20 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const sessionGenRef = useRef(0);
+
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    try {
+      const savedUser = localStorage.getItem('user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      console.warn('Failed to parse saved user from localStorage:', e);
+      localStorage.removeItem('user');
+      return null;
+    }
   });
   const [token, setToken] = useState(() => localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
@@ -14,22 +22,29 @@ export const AuthProvider = ({ children }) => {
 
   // Fetch current user from /auth/me on load if token exists
   const fetchCurrentUser = useCallback(async () => {
+    const currentGen = ++sessionGenRef.current;
     const storedToken = localStorage.getItem('token');
     if (!storedToken) {
-      setLoading(false);
+      if (currentGen === sessionGenRef.current) {
+        setLoading(false);
+      }
       return;
     }
     try {
       const response = await api.get('/auth/me');
-      if (response.data.success) {
+      if (currentGen === sessionGenRef.current && response.data.success) {
         setUser(response.data.user);
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
     } catch (err) {
-      console.error('Failed to fetch user session:', err);
-      logout();
+      if (currentGen === sessionGenRef.current) {
+        console.error('Failed to fetch user session:', err);
+        logout();
+      }
     } finally {
-      setLoading(false);
+      if (currentGen === sessionGenRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -38,6 +53,7 @@ export const AuthProvider = ({ children }) => {
   }, [fetchCurrentUser]);
 
   const login = async (email, password) => {
+    sessionGenRef.current++;
     setError(null);
     try {
       const response = await api.post('/auth/login', { email, password });
@@ -48,6 +64,7 @@ export const AuthProvider = ({ children }) => {
 
       setToken(newToken);
       setUser(userData);
+      setLoading(false);
       return { success: true, user: userData };
     } catch (err) {
       const message = err.response?.data?.message || 'Login failed. Please check your credentials.';
@@ -57,6 +74,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password, name) => {
+    sessionGenRef.current++;
     setError(null);
     try {
       const response = await api.post('/auth/register', { email, password, name });
@@ -67,6 +85,7 @@ export const AuthProvider = ({ children }) => {
 
       setToken(newToken);
       setUser(userData);
+      setLoading(false);
       return { success: true, user: userData };
     } catch (err) {
       const message = err.response?.data?.message || 'Registration failed.';
@@ -76,11 +95,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    sessionGenRef.current++;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
     setError(null);
+    setLoading(false);
   };
 
   return (
