@@ -90,6 +90,7 @@ export default function ScheduleList() {
                     <th>Start</th>
                     <th>End</th>
                     <th>Break</th>
+                    <th>Daily Hours</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -99,6 +100,7 @@ export default function ScheduleList() {
                       <td>{l.startTime}</td>
                       <td>{l.endTime}</td>
                       <td>{l.breakMinutes}m</td>
+                      <td className="font-medium text-gray-800">{l.dailyHours}h</td>
                     </tr>
                   ))}
                 </tbody>
@@ -142,6 +144,13 @@ export default function ScheduleList() {
                   </button>
                 </div>
                 <div className="space-y-2">
+                  <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-0.5">
+                    <span className="col-span-3">Day</span>
+                    <span className="col-span-3">Start Time</span>
+                    <span className="col-span-3">End Time</span>
+                    <span className="col-span-2">Break (min)</span>
+                    <span className="col-span-1"></span>
+                  </div>
                   {lines.map((l, idx) => (
                     <div key={idx} className="grid grid-cols-12 gap-2 items-center">
                       <select className="input col-span-3" value={l.day} onChange={(e) => updateLine(idx, 'day', e.target.value)}>
@@ -155,10 +164,12 @@ export default function ScheduleList() {
                       <input type="time" className="input col-span-3" value={l.endTime} onChange={(e) => updateLine(idx, 'endTime', e.target.value)} />
                       <input
                         type="number"
+                        min="0"
                         className="input col-span-2"
                         value={l.breakMinutes}
                         onChange={(e) => updateLine(idx, 'breakMinutes', Number(e.target.value))}
-                        title="Break minutes"
+                        aria-label="Break time in minutes"
+                        title="Break time in minutes"
                       />
                       <button type="button" className="col-span-1 text-red-400 hover:text-red-600" onClick={() => setLines((ls) => ls.filter((_, i) => i !== idx))}>
                         <Trash2 size={16} />
@@ -167,6 +178,10 @@ export default function ScheduleList() {
                   ))}
                 </div>
               </div>
+
+              <p className="text-xs text-gray-400">
+                Daily and weekly worked hours are calculated automatically as End Time − Start Time − Break Time.
+              </p>
 
               <button type="submit" className="btn-primary w-full">
                 Create Schedule

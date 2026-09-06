@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Printer } from 'lucide-react';
+import { Printer, AlertTriangle } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -98,6 +98,19 @@ export default function PayslipDetail() {
           </div>
         </div>
       </div>
+
+      {Array.isArray(payslip.warnings) && payslip.warnings.length > 0 && (
+        <div className="card p-4 max-w-2xl mt-4 border-amber-200 bg-amber-50 print:hidden">
+          <p className="text-sm font-medium text-amber-800 mb-1 flex items-center gap-1">
+            <AlertTriangle size={14} /> This payslip has warnings
+          </p>
+          <ul className="text-sm text-amber-700 list-disc list-inside space-y-0.5">
+            {payslip.warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

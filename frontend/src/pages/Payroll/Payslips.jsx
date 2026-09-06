@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/PageHeader';
+import PayrollTabs from '../../components/PayrollTabs';
 import StatusBadge from '../../components/StatusBadge';
 
 export default function Payslips() {
@@ -12,6 +13,7 @@ export default function Payslips() {
 
   return (
     <div>
+      <PayrollTabs />
       <PageHeader title="Payslips" subtitle="All generated payslips across pay runs." />
       <div className="card overflow-x-auto">
         <table className="data-table w-full">

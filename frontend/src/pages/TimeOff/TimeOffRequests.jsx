@@ -72,6 +72,7 @@ export default function TimeOffRequests() {
               <th>Start</th>
               <th>End</th>
               <th>Duration</th>
+              <th>Remaining Allocation</th>
               <th>Status</th>
               {isStaff && <th>Action</th>}
             </tr>
@@ -84,6 +85,15 @@ export default function TimeOffRequests() {
                 <td>{new Date(r.startDate).toLocaleDateString()}</td>
                 <td>{new Date(r.endDate).toLocaleDateString()}</td>
                 <td>{r.duration} day(s)</td>
+                <td>
+                  {r.remainingAllocation != null ? (
+                    <span className={r.remainingAllocation <= 0 ? 'text-red-600 font-medium' : 'text-gray-700'}>
+                      {r.remainingAllocation} day(s)
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">N/A</span>
+                  )}
+                </td>
                 <td>
                   <StatusBadge status={r.status} />
                 </td>

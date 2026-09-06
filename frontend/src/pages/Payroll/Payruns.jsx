@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/PageHeader';
+import PayrollTabs from '../../components/PayrollTabs';
 import StatusBadge from '../../components/StatusBadge';
 
 export default function Payruns() {
@@ -14,6 +15,7 @@ export default function Payruns() {
 
   return (
     <div>
+      <PayrollTabs />
       <PageHeader
         title="Payruns"
         subtitle="A Payrun represents payroll processing for a particular period."

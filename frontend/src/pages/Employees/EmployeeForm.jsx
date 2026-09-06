@@ -33,7 +33,7 @@ export default function EmployeeForm() {
 
   useEffect(() => {
     api.get('/schedules').then((res) => setSchedules(res.data));
-    api.get('/employees', { params: { pageSize: 200 } }).then((res) => setManagers(res.data.items));
+    api.get('/employees/managers').then((res) => setManagers(res.data));
   }, []);
 
   useEffect(() => {
@@ -107,75 +107,86 @@ export default function EmployeeForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="card p-6 max-w-3xl space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
-            <input required disabled={!canWrite} className="input" value={form.name} onChange={handleChange('name')} />
+      <form onSubmit={handleSubmit} className="card p-6 max-w-5xl space-y-6">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">Personal Details</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
+              <input required disabled={!canWrite} className="input" value={form.name} onChange={handleChange('name')} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Work Email</label>
+              <input required type="email" disabled={!canWrite} className="input" value={form.workEmail} onChange={handleChange('workEmail')} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
+              <input disabled={!canWrite} className="input" value={form.phone} onChange={handleChange('phone')} />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Work Email</label>
-            <input required type="email" disabled={!canWrite} className="input" value={form.workEmail} onChange={handleChange('workEmail')} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
-            <input disabled={!canWrite} className="input" value={form.phone} onChange={handleChange('phone')} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Department</label>
-            <input required disabled={!canWrite} className="input" value={form.department} onChange={handleChange('department')} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Job Position</label>
-            <input required disabled={!canWrite} className="input" value={form.jobPosition} onChange={handleChange('jobPosition')} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Employee Type</label>
-            <select disabled={!canWrite} className="input" value={form.employeeType} onChange={handleChange('employeeType')}>
-              <option value="FULL_TIME">Full Time</option>
-              <option value="PART_TIME">Part Time</option>
-              <option value="CONTRACT">Contract</option>
-              <option value="INTERN">Intern</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-            <select disabled={!canWrite} className="input" value={form.status} onChange={handleChange('status')}>
-              <option value="ACTIVE">Active</option>
-              <option value="ON_LEAVE">On Leave</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Manager</label>
-            <select disabled={!canWrite} className="input" value={form.managerId} onChange={handleChange('managerId')}>
-              <option value="">No manager</option>
-              {managers.filter((m) => m.id !== id).map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Working Schedule</label>
-            <select disabled={!canWrite} className="input" value={form.workingScheduleId} onChange={handleChange('workingScheduleId')}>
-              <option value="">No schedule</option>
-              {schedules.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+        </div>
+
+        <div className="border-t border-gray-100 pt-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">Job Information</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Department</label>
+              <input required disabled={!canWrite} className="input" value={form.department} onChange={handleChange('department')} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Job Position</label>
+              <input required disabled={!canWrite} className="input" value={form.jobPosition} onChange={handleChange('jobPosition')} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Employee Type</label>
+              <select disabled={!canWrite} className="input" value={form.employeeType} onChange={handleChange('employeeType')}>
+                <option value="FULL_TIME">Full Time</option>
+                <option value="PART_TIME">Part Time</option>
+                <option value="CONTRACT">Contract</option>
+                <option value="INTERN">Intern</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+              <select disabled={!canWrite} className="input" value={form.status} onChange={handleChange('status')}>
+                <option value="ACTIVE">Active</option>
+                <option value="ON_LEAVE">On Leave</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Reporting Manager</label>
+              <select disabled={!canWrite} className="input" value={form.managerId} onChange={handleChange('managerId')}>
+                <option value="">No manager</option>
+                {managers.filter((m) => m.id !== id).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} · {m.jobPosition}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Working Schedule</label>
+              <select disabled={!canWrite} className="input" value={form.workingScheduleId} onChange={handleChange('workingScheduleId')}>
+                <option value="">No schedule</option>
+                {schedules.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         {canWrite && (
-          <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          <div className="border-t border-gray-100 pt-4">
+            <button type="submit" disabled={saving} className="btn-primary">
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
         )}
       </form>
 
@@ -187,6 +198,7 @@ export default function EmployeeForm() {
               <thead>
                 <tr>
                   <th>Reference</th>
+                  <th>Contract Name</th>
                   <th>Start</th>
                   <th>End</th>
                   <th>Wage</th>

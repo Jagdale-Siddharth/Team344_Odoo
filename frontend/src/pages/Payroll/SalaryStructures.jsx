@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
 import api from '../../api/axios';
 import PageHeader from '../../components/PageHeader';
+import PayrollTabs from '../../components/PayrollTabs';
 import { useAuth } from '../../context/AuthContext';
 
 export default function SalaryStructures() {
@@ -27,6 +28,7 @@ export default function SalaryStructures() {
 
   return (
     <div>
+      <PayrollTabs />
       <PageHeader
         title="Salary Structures"
         subtitle="Containers for organized collections of Salary Rules."

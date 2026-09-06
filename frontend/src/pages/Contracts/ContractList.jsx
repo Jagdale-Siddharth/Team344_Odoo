@@ -6,7 +6,7 @@ import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
 import { useAuth, HR_WRITE_ROLES } from '../../context/AuthContext';
 
-const EMPTY = { employeeId: '', department: '', jobPosition: '', startDate: '', endDate: '', wage: '', salaryStructureId: '', status: 'RUNNING' };
+const EMPTY = { name: '', employeeId: '', department: '', jobPosition: '', startDate: '', endDate: '', wage: '', salaryStructureId: '', status: 'RUNNING' };
 
 export default function ContractList() {
   const [params] = useSearchParams();
@@ -73,6 +73,7 @@ export default function ContractList() {
           <thead>
             <tr>
               <th>Reference</th>
+              <th>Contract Name</th>
               <th>Employee</th>
               <th>Department</th>
               <th>Start</th>
@@ -86,7 +87,8 @@ export default function ContractList() {
             {contracts.map((c) => (
               <tr key={c.id}>
                 <td>{c.reference}</td>
-                <td className="font-medium text-gray-800">{c.employee?.name}</td>
+                <td className="font-medium text-gray-800">{c.name || '-'}</td>
+                <td>{c.employee?.name}</td>
                 <td>{c.department}</td>
                 <td>{new Date(c.startDate).toLocaleDateString()}</td>
                 <td>{c.endDate ? new Date(c.endDate).toLocaleDateString() : '-'}</td>
@@ -110,6 +112,16 @@ export default function ContractList() {
             </button>
             <h2 className="font-semibold text-gray-800 mb-4">New Contract</h2>
             <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Contract Name</label>
+                <input
+                  required
+                  className="input"
+                  placeholder="e.g. Full Time Employment Contract"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                />
+              </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Employee</label>
                 <select required className="input" value={form.employeeId} onChange={handleEmployeeSelect}>

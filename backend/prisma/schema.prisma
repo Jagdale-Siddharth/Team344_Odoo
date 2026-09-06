@@ -94,6 +94,7 @@ enum ContractStatus {
 model Contract {
   id                String         @id @default(uuid())
   reference         String         @unique
+  name              String?
   employeeId        String
   employee          Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   department        String

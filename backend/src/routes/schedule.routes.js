@@ -26,11 +26,22 @@ function timeToHours(t) {
   return h + (m || 0) / 60;
 }
 
+// Daily Worked Hours = End Time - Start Time - Break Time.
+// Computed here (backend) so the frontend only ever displays a value the
+// user cannot manipulate.
+function dailyHours(line) {
+  const span = timeToHours(line.endTime) - timeToHours(line.startTime) - (line.breakMinutes || 0) / 60;
+  return Math.max(Math.round(span * 100) / 100, 0);
+}
+
+// Weekly Worked Hours = sum of Daily Worked Hours for all working days.
 function weeklyHours(lines) {
-  return lines.reduce((sum, l) => {
-    const span = timeToHours(l.endTime) - timeToHours(l.startTime) - (l.breakMinutes || 0) / 60;
-    return sum + Math.max(span, 0);
-  }, 0);
+  return lines.reduce((sum, l) => sum + dailyHours(l), 0);
+}
+
+function withComputedHours(schedule) {
+  const lines = schedule.lines.map((l) => ({ ...l, dailyHours: dailyHours(l) }));
+  return { ...schedule, lines, weeklyHours: Math.round(weeklyHours(schedule.lines) * 100) / 100 };
 }
 
 router.get(
@@ -40,9 +51,7 @@ router.get(
       include: { lines: true, _count: { select: { employees: true } } },
       orderBy: { name: 'asc' },
     });
-    res.json(
-      schedules.map((s) => ({ ...s, weeklyHours: Math.round(weeklyHours(s.lines) * 100) / 100 }))
-    );
+    res.json(schedules.map(withComputedHours));
   })
 );
 
@@ -54,7 +63,7 @@ router.get(
       include: { lines: true },
     });
     if (!schedule) return res.status(404).json({ message: 'Schedule not found' });
-    res.json({ ...schedule, weeklyHours: Math.round(weeklyHours(schedule.lines) * 100) / 100 });
+    res.json(withComputedHours(schedule));
   })
 );
 
@@ -72,7 +81,7 @@ router.post(
       },
       include: { lines: true },
     });
-    res.status(201).json(schedule);
+    res.status(201).json(withComputedHours(schedule));
   })
 );
 
@@ -96,7 +105,7 @@ router.put(
         include: { lines: true },
       });
     });
-    res.json(schedule);
+    res.json(withComputedHours(schedule));
   })
 );
 

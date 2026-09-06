@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticate);
 
 const contractSchema = z.object({
+  name: z.string().min(1),
   employeeId: z.string().uuid(),
   department: z.string().min(1),
   jobPosition: z.string().min(1),

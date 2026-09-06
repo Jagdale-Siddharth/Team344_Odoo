@@ -31,7 +31,8 @@ export default function PayrunDetail() {
 
   if (!payrun) return <p className="text-gray-400 text-sm">Loading...</p>;
 
-  const warningCount = payrun.payslips.filter((p) => Array.isArray(p.warnings) && p.warnings.length > 0).length;
+  const flaggedPayslips = payrun.payslips.filter((p) => Array.isArray(p.warnings) && p.warnings.length > 0);
+  const warningCount = flaggedPayslips.length;
 
   return (
     <div>
@@ -70,6 +71,21 @@ export default function PayrunDetail() {
 
       {message && <p className="text-sm text-green-700 mb-3">{message}</p>}
 
+      {warningCount > 0 && (
+        <div className="card p-4 mb-4 border-amber-200 bg-amber-50">
+          <p className="text-sm font-medium text-amber-800 mb-2 flex items-center gap-1">
+            <AlertTriangle size={14} /> {warningCount} payslip(s) need attention
+          </p>
+          <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
+            {flaggedPayslips.map((p) => (
+              <li key={p.id}>
+                <span className="font-medium">{p.employee?.name}:</span> {p.warnings.join('; ')}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="card overflow-x-auto">
         <table className="data-table w-full">
           <thead>
@@ -100,8 +116,12 @@ export default function PayrunDetail() {
                 </td>
                 <td>
                   {Array.isArray(p.warnings) && p.warnings.length > 0 ? (
-                    <span className="text-amber-600 text-xs flex items-center gap-1">
-                      <AlertTriangle size={12} /> {p.warnings.length}
+                    <span
+                      className="text-amber-600 text-xs flex items-start gap-1 max-w-xs"
+                      title={p.warnings.join('; ')}
+                    >
+                      <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                      <span>{p.warnings.join('; ')}</span>
                     </span>
                   ) : (
                     '-'

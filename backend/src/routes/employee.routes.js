@@ -78,6 +78,30 @@ router.get(
   })
 );
 
+// GET /api/employees/managers
+// Returns only employees who actually hold a manager/lead designation
+// (jobPosition contains "Manager" or "Lead") OR already have direct
+// reports. Used to populate the "Select Manager" dropdown so HR doesn't
+// have to pick a manager out of the entire employee list.
+router.get(
+  '/managers',
+  asyncHandler(async (req, res) => {
+    const managers = await prisma.employee.findMany({
+      where: {
+        status: { not: 'INACTIVE' },
+        OR: [
+          { jobPosition: { contains: 'Manager', mode: 'insensitive' } },
+          { jobPosition: { contains: 'Lead', mode: 'insensitive' } },
+          { reports: { some: {} } },
+        ],
+      },
+      select: { id: true, name: true, department: true, jobPosition: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json(managers);
+  })
+);
+
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {

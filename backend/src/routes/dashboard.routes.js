@@ -57,12 +57,39 @@ router.get(
 
       const warningsCount = payslips.filter((p) => Array.isArray(p.warnings) && p.warnings.length > 0).length;
 
+      // Payment status: how many payslips are actually paid out vs still pending.
+      const pendingPayslips = payslips.filter((p) => p.status !== 'PAID').length;
+      const paidPayslips = payslips.length - pendingPayslips;
+
+      // Salary distribution: bucket net pay into 5 equal-width ranges so
+      // HR Payroll can see how pay is spread across the workforce.
+      let salaryDistribution = [];
+      if (payslips.length) {
+        const nets = payslips.map((p) => p.net);
+        const min = Math.min(...nets);
+        const max = Math.max(...nets);
+        const bucketCount = 5;
+        const width = (max - min) / bucketCount || 1;
+        const buckets = Array.from({ length: bucketCount }, (_, i) => ({
+          range: `₹${Math.round(min + i * width).toLocaleString()} - ₹${Math.round(min + (i + 1) * width).toLocaleString()}`,
+          count: 0,
+        }));
+        for (const net of nets) {
+          const idx = Math.min(Math.floor((net - min) / width), bucketCount - 1);
+          buckets[idx].count += 1;
+        }
+        salaryDistribution = buckets;
+      }
+
       payrollData = {
         totalNetSalaryPaid: netAgg._sum.net || 0,
         averageSalary: netAgg._avg.net || 0,
         payslipsGenerated: netAgg._count || 0,
+        pendingPayslips,
+        paidPayslips,
         payslipStatusBreakdown: payslipCountByStatus.map((s) => ({ status: s.status, count: s._count })),
         salaryCostByDepartment: Object.entries(salaryByDept).map(([department, total]) => ({ department, total })),
+        salaryDistribution,
         monthlyNetSalaryTrend: Object.entries(netByMonth)
           .sort(([a], [b]) => (a > b ? 1 : -1))
           .map(([month, total]) => ({ month, total })),

@@ -155,7 +155,39 @@ router.get(
       include: { employee: { select: { id: true, name: true } }, timeOffType: true },
       orderBy: { createdAt: 'desc' },
     });
-    res.json(requests);
+
+    // Remaining Allocation = allocated - taken on the employee's latest
+    // APPROVED allocation for that time off type. Fetched in one batch
+    // query and matched in memory rather than hardcoded on the frontend.
+    const pairs = [...new Set(requests.map((r) => `${r.employeeId}::${r.timeOffTypeId}`))];
+    const allocations = pairs.length
+      ? await prisma.allocation.findMany({
+          where: {
+            status: 'APPROVED',
+            OR: pairs.map((p) => {
+              const [employeeId, timeOffTypeId] = p.split('::');
+              return { employeeId, timeOffTypeId };
+            }),
+          },
+          orderBy: { validFrom: 'desc' },
+        })
+      : [];
+
+    const latestByPair = {};
+    for (const a of allocations) {
+      const key = `${a.employeeId}::${a.timeOffTypeId}`;
+      if (!latestByPair[key]) latestByPair[key] = a; // first hit wins (already sorted desc)
+    }
+
+    const result = requests.map((r) => {
+      const allocation = latestByPair[`${r.employeeId}::${r.timeOffTypeId}`];
+      return {
+        ...r,
+        remainingAllocation: allocation ? allocation.allocated - allocation.taken : null,
+      };
+    });
+
+    res.json(result);
   })
 );
 
